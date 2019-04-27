@@ -1,8 +1,56 @@
 // https://developers.google.com/youtube/iframe_api_reference
 
 import * as React from "react";
-import YouTube from "react-youtube";
+import YouTube, { Options } from "react-youtube";
 import { useState, useCallback, useEffect } from "react";
+
+interface YouTubeProps {
+  videoId: string;
+  id?: string;
+  className?: string;
+  containerClassName?: string;
+  opts?: Options;
+  onReady?(event: { target: any }): void;
+  onError?(event: { target: any; data: number }): void;
+  onPlay?(event: { target: any; data: number }): void;
+  onPause?(event: { target: any; data: number }): void;
+  onEnd?(event: { target: any; data: number }): void;
+  onStateChange?(event: { target: any; data: number }): void;
+  onPlaybackRateChange?(event: { target: any; data: number }): void;
+  onPlaybackQualityChange?(event: { target: any; data: string }): void;
+}
+interface Props extends YouTubeProps {
+  apiRef: React.MutableRefObject<PlayerAPI>;
+  opts: never;
+}
+
+export function YTPlayer({ apiRef, ...props }: Props) {
+  const [player, setPlayer] = useState(null as PlayerAPI);
+
+  const playerOnReady = useCallback(event => setPlayer(event.target), []);
+  useEffect(() => {
+    apiRef.current = player;
+    props.onReady && props.onReady({ target: player });
+  }, [apiRef, props.onReady, player]);
+
+  return <YouTube {...props} opts={opts} onReady={playerOnReady} />;
+}
+
+const opts: Options = {
+  height: "390",
+  width: "640",
+  playerVars: {
+    // https://developers.google.com/youtube/player_parameters
+    autoplay: 0,
+    controls: 0,
+    cc_load_policy: 1,
+    fs: 1,
+    iv_load_policy: 3,
+    playsinline: 1,
+    rel: 0,
+    disablekb: 1,
+  },
+};
 
 export interface PlayerAPI {
   playVideo(): void;
@@ -69,26 +117,3 @@ type YTPlaybackQuality =
   | "hd1080"
   | "highres"
   | "default";
-
-export function YTPlayer({ apiRef, ...props }) {
-  const [player, setPlayer] = useState(null as PlayerAPI);
-  const playerOnReady = useCallback((event: { target: PlayerAPI }) => {
-    setPlayer(event.target);
-  }, []);
-  useEffect(() => {
-    if (!player) return;
-    apiRef.current = player;
-    player.playVideo();
-  }, [apiRef, player]);
-
-  const opts = {
-    height: "390",
-    width: "640",
-    playerVars: {
-      // https://developers.google.com/youtube/player_parameters
-      autoplay: 0 as 0
-    }
-  };
-
-  return <YouTube opts={opts} onReady={playerOnReady} {...props} />;
-}
